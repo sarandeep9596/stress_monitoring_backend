@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: stress-backend
+    env: python
+    rootDir: src
+    buildCommand: "pip install -r src/requirements.txt"
+    startCommand: "python src/app.py"
+    rootDir: src
+    plan: free
