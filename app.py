@@ -8,6 +8,8 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from nltk.tokenize import word_tokenize 
+
 import os
 # Initialize Flask app
 app = Flask(__name__)
@@ -38,7 +40,7 @@ def clean_text(text):
     text = text.lower()
     text = re.sub(r'\W', ' ', text)
     text = re.sub(r'\d', '', text)
-    tokens = nltk.word_tokenize(text)
+    tokens = word_tokenize(text)
     tokens = [lemmatizer.lemmatize(word) for word in tokens if word not in stop_words]
     return ' '.join(tokens)
 
