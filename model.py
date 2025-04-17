@@ -12,6 +12,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 import nltk
+from nltk.tokenize import word_tokenize 
 nltk.download('punkt')
 nltk.download('punkt_tab')
 nltk.download('stopwords')
@@ -25,7 +26,7 @@ def clean_text(text):
     text = text.lower()
     text = re.sub(r'\W', ' ', text)
     text = re.sub(r'\d', '', text)
-    tokens = nltk.word_tokenize(text)
+    tokens = word_tokenize(text)
     tokens = [lemmatizer.lemmatize(word) for word in tokens if word not in stop_words]
     return ' '.join(tokens)
 
