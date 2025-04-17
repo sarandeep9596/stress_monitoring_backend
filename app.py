@@ -4,6 +4,7 @@ import nltk
 import re
 import pickle
 import numpy as np
+import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
