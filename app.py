@@ -1,71 +1,51 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-import nltk
-import re
-import pickle
+from fastapi import FastAPI, Request
+from pydantic import BaseModel
+import joblib
 import numpy as np
-import nltk
-from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
-from nltk.tokenize import word_tokenize 
+from typing import Optional
 
-import os
-# Initialize Flask app
-app = Flask(__name__)
-CORS(app)
-# Download NLTK resources
-nltk.download('punkt')
-nltk.download('stopwords')
-nltk.download('wordnet')
-nltk.download('vader_lexicon')
+# Initialize FastAPI app
+app = FastAPI()
 
-# Load model and vectorizer
-with open('stress_model.pkl', 'rb') as model_file:
-    model = pickle.load(model_file)
+# Load pre-trained model and TF-IDF
+model = joblib.load("stress_model.pkl")       # Replace with your model file
+tfidf = joblib.load("tfidf_vectorizer.pkl")       # Replace with your TF-IDF vectorizer
 
-with open('tfidf_vectorizer.pkl', 'rb') as vectorizer_file:
-    tfidf = pickle.load(vectorizer_file)
+# For demo: avg_confidence can be fixed or calculated if you want
+avg_confidence = 0.85
 
-# Initialize tools
-stop_words = set(stopwords.words('english'))
-lemmatizer = WordNetLemmatizer()
-sid = SentimentIntensityAnalyzer()
+# -----------------------
+# Utilities for Text Prep
+# -----------------------
 
-# Average confidence used in model training
-avg_confidence = 0.7  # Update this with actual average used if different
-
-# Cleaning and preprocessing
 def clean_text(text):
-    text = text.lower()
-    text = re.sub(r'\W', ' ', text)
-    text = re.sub(r'\d', '', text)
-    tokens = word_tokenize(text)
-    tokens = [lemmatizer.lemmatize(word) for word in tokens if word not in stop_words]
-    return ' '.join(tokens)
+    return text.lower().strip()
 
 def preprocess_text(text):
-    return ' '.join(word for word in text.split() if word not in stop_words)
+    return text  # Extend this if needed
 
 def extract_features(text):
-    words = nltk.word_tokenize(text)
+    words = text.split()
     num_words = len(words)
-    num_positive = sum(1 for word in words if sid.polarity_scores(word)['compound'] > 0.05)
-    num_negative = sum(1 for word in words if sid.polarity_scores(word)['compound'] < -0.05)
-    return [num_words, num_positive, num_negative]
+    # Dummy values - Replace with actual sentiment analysis if available
+    num_positive = sum(word in ["happy", "good", "great"] for word in words)
+    num_negative = sum(word in ["sad", "bad", "stress"] for word in words)
+    return num_words, num_positive, num_negative
 
-@app.route('/')
-def home():
-    return "Flask server is running!"
+# -----------------------
+# Request Body Schema
+# -----------------------
 
-@app.route('/favicon.ico')
-def favicon():
-    return '', 204
+class TextInput(BaseModel):
+    input: str
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    data = request.get_json()
-    user_input = data.get('input', '')
+# -----------------------
+# Prediction Route
+# -----------------------
+
+@app.post("/predict")
+async def predict_stress(data: TextInput):
+    user_input = data.input
 
     cleaned = clean_text(user_input)
     processed = preprocess_text(cleaned)
@@ -75,13 +55,10 @@ def predict():
     num_words, num_positive, num_negative = extract_features(processed)
     extra_features = np.array([[avg_confidence, num_words, num_positive, num_negative]])
 
+    # Combine features
     combined_input = np.concatenate((tfidf_input, extra_features), axis=1)
 
+    # Predict stress level
     prediction = model.predict(combined_input)[0]
-    return jsonify({'prediction': f"Predicted Stress Level (1-10): {prediction:.2f}"})
 
-
-if __name__ == '__main__':
-      
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    return {"prediction": f"Predicted Stress Level (1-10): {prediction:.2f}"}
