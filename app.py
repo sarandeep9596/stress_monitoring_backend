@@ -3,10 +3,16 @@ from pydantic import BaseModel
 import joblib
 import numpy as np
 from typing import Optional
-
+from fastapi.middleware.cors import CORSMiddleware
 # Initialize FastAPI app
 app = FastAPI()
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # You can restrict this to your frontend domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # Load pre-trained model and TF-IDF
 model = joblib.load("stress_model.pkl")       # Replace with your model file
 tfidf = joblib.load("tfidf_vectorizer.pkl")       # Replace with your TF-IDF vectorizer
